@@ -205,7 +205,7 @@ void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 }
 
 
-void hide(poly* v, int16_t t, uint8_t rand){
+static void hide(poly* v, int16_t t, uint8_t rand){
   int32_t hide = (int32_t)t * (int32_t)KYBER_Q;
   for (int i = 0; i < KYBER_N; i++){
     v->coeffs[i] += hide;
@@ -214,11 +214,11 @@ void hide(poly* v, int16_t t, uint8_t rand){
   poly_pqt_reduce(v, rand);
 }
 
-int32_t lift(int32_t p, int32_t q, uint8_t t){
+static int32_t lift(int32_t p, int32_t q, uint8_t t){
     return pqt_montgomery_reduce((int64_t)p * 4137947LL + (int64_t)q * 20631166LL, t);
 }
 
-int32_t csubp(int32_t r){
+static int32_t csubp(int32_t r){
   return r - (KYBER_P & ((1 << 31) - (((KYBER_P - r - 1) >> 31) & 1)));
 }
 /*************************************************
@@ -250,7 +250,7 @@ void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
   hide_mod = hide_mod & 7;
   uint16_t hide_val;
   randombytes((uint8_t *)&hide_val, 2);
-  unsigned int i;
+  unsigned int i, j, k;
   uint8_t buf[2*KYBER_SYMBYTES];
   const uint8_t *publicseed = buf;
   const uint8_t *noiseseed = buf+KYBER_SYMBYTES;
@@ -270,26 +270,26 @@ void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
     poly_getnoise_eta1(&e.vec[i], noiseseed, nonce++);
 
 
-  for (size_t j = 0u; j < KYBER_N; j++){
+  for (j = 0u; j < KYBER_N; j++){
     polyA.coeffs[j] = CFP_key_A;
   }
   
   poly_p_ntt(&polyA);
 
   
-  for (size_t i = 0u; i < KYBER_K; i++)
+  for (i = 0u; i < KYBER_K; i++)
   {
     hide(&e.vec[i], hide_val, hide_mod);
     hide(&skpv.vec[i], hide_val, hide_mod);
-    for (size_t k = 0u; k < KYBER_K; k++){
+    for (k = 0u; k < KYBER_K; k++){
       hide(&a[k].vec[i], hide_val, hide_mod);
     }
 
-    for (size_t j = 0u; j < KYBER_N; j++){
+    for (j = 0u; j < KYBER_N; j++){
       skpv.vec[i].coeffs[j] = lift(CFP_key_S, skpv.vec[i].coeffs[j], hide_mod);
       e.vec[i].coeffs[j] = lift(CFP_key_E, e.vec[i].coeffs[j], hide_mod);
       
-      for (size_t k = 0u; k < KYBER_K; k++){
+      for (k = 0u; k < KYBER_K; k++){
         a[k].vec[i].coeffs[j] = lift(polyA.coeffs[j], a[k].vec[i].coeffs[j], hide_mod);
       }
     }
@@ -306,8 +306,8 @@ void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
 
   polyvec_add(&pkpv, &pkpv, &e);
   polyvec_pqt_reduce(&pkpv, hide_mod);
-  for (size_t i = 0; i < KYBER_K; i++){
-    for (size_t j = 0; j < KYBER_N; j++){
+  for (i = 0; i < KYBER_K; i++){
+    for (j = 0; j < KYBER_N; j++){
       e.vec[i].coeffs[j] = skpv.vec[i].coeffs[j];
       a[0].vec[i].coeffs[j] = pkpv.vec[i].coeffs[j];
     }
@@ -318,8 +318,8 @@ void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
   polyvec_p_reduce(&a[0]);
   polyvec_p_invntt_tomont(&a[0]);
   int32_t valpk = p_barrett_reduce((int32_t)KYBER_K * (int32_t)CFP_key_A * (int32_t)CFP_key_S);
-  for (int i = 0; i < KYBER_N; i++){
-    for (int j = 0; j < KYBER_K; j++){
+  for (i = 0; i < KYBER_N; i++){
+    for (j = 0; j < KYBER_K; j++){
       if (p_montgomery_reduce(a[0].vec[j].coeffs[i]) != csubp(CFP_key_E + p_barrett_reduce( valpk * ((i << 1) - 254))) ||
           p_montgomery_reduce(e.vec[j].coeffs[i]) != CFP_key_S) {
           return;
@@ -374,7 +374,7 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
   hide_mod = hide_mod & 7;
   uint16_t hide_val;
   randombytes((uint8_t *)&hide_val, 2);
-  unsigned int i;
+  unsigned int i, j, y;
   uint8_t seed[KYBER_SYMBYTES];
   uint8_t nonce = 0;
   polyvec sp, pkpv, ep, at[KYBER_K], b;
@@ -393,7 +393,7 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
   
   hide(&epp, hide_val, hide_mod);
   hide(&k, hide_val, hide_mod);
-  for (size_t j = 0u; j < KYBER_N; j++){
+  for (j = 0u; j < KYBER_N; j++){
     polyA.coeffs[j] = CFP_enc_A;
     v.coeffs[j] = CFP_enc_T;
     epp.coeffs[j] = lift(CFP_enc_E2, epp.coeffs[j], hide_mod);
@@ -403,17 +403,17 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
   poly_p_ntt(&polyA);
   poly_p_ntt(&v);
 
-  for (size_t i = 0u; i < KYBER_K; i++)
+  for (i = 0u; i < KYBER_K; i++)
   {
     hide(&pkpv.vec[i], hide_val, hide_mod);
     hide(&sp.vec[i], hide_val, hide_mod);
     hide(&ep.vec[i], hide_val, hide_mod);
-    for (size_t j = 0u; j < KYBER_N; j++){
+    for (j = 0u; j < KYBER_N; j++){
       pkpv.vec[i].coeffs[j] = lift(v.coeffs[j], pkpv.vec[i].coeffs[j], hide_mod);
       sp.vec[i].coeffs[j] = lift(CFP_enc_R, sp.vec[i].coeffs[j], hide_mod);
       ep.vec[i].coeffs[j] = lift(CFP_enc_E1, ep.vec[i].coeffs[j], hide_mod);
       
-      for (size_t y = 0u; y < KYBER_K; y++){
+      for (y = 0u; y < KYBER_K; y++){
         at[y].vec[i].coeffs[j] = lift(polyA.coeffs[j], at[y].vec[i].coeffs[j], hide_mod);
       }
     }
@@ -439,11 +439,11 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
   int32_t valu = p_barrett_reduce((int32_t)KYBER_K * (int32_t)CFP_enc_A * (int32_t)CFP_enc_R);
   int32_t valv = p_barrett_reduce((int32_t)KYBER_K * (int32_t)CFP_enc_T * (int32_t)CFP_enc_R);
 
-  for (int i = 0; i < KYBER_N; i++){
+  for (i = 0; i < KYBER_N; i++){
     if (p_barrett_reduce(v.coeffs[i]) != csubp(CFP_enc_M + CFP_enc_E2 + p_barrett_reduce( valv * ((i << 1) - 254)))){
             return;
     }
-    for (int j = 0; j < KYBER_K; j++){
+    for (j = 0; j < KYBER_K; j++){
       if (p_barrett_reduce(b.vec[j].coeffs[i]) != csubp(CFP_enc_E1 + p_barrett_reduce( valu * ((i << 1) - 254)))){
           return;
       }
@@ -511,6 +511,7 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
     }
   }
 
+  
   polyvec_pqt_ntt(&b, hide_mod);
   polyvec_pqt_basemul_acc_montgomery(&mp, &skpv, &b, hide_mod);
   poly_pqt_invntt_tomont(&mp, hide_mod);
@@ -526,6 +527,5 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
   }
 
   poly_q_reduce(&mp);
-
   poly_tomsg(m, &mp);
 }
