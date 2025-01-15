@@ -31,7 +31,7 @@ int16_t q_montgomery_reduce(int32_t a)
 
   r = (int32_t)a*QINV;
   r = (a - (int64_t)r*KYBER_Q) >> 32;
-  return r - (KYBER_Q & ((1 << 31) - (((KYBER_Q - r - 1) >> 31) & 1)));
+  return r - (KYBER_Q & ((1 << 31) - (((KYBER_Q - r - 1) >> 31) & 1))) + (KYBER_Q & ((1 << 31) - ((r >> 31) & 1)));
 }
 
 /*************************************************
@@ -51,7 +51,7 @@ int16_t p_montgomery_reduce(int32_t a)
 
   r = (int32_t)a*PINV;
   r = (a - (int64_t)r*KYBER_P) >> 32;
-  return r - (KYBER_P & ((1 << 31) - (((KYBER_P - r - 1) >> 31) & 1)));
+  return r - (KYBER_P & ((1 << 31) - (((KYBER_P - r - 1) >> 31) & 1))) + (KYBER_P & ((1 << 31) - ((r >> 31) & 1)));
 }
 
 /*************************************************
@@ -72,7 +72,7 @@ int32_t pqt_montgomery_reduce(int64_t a, uint8_t t)
 
   r = (int32_t)a*PQTINV[t];
   r = (a - (int64_t)r*KYBER_PQT[t]) >> 32;
-  return r - (KYBER_PQT[t] & ((1 << 31) - (((KYBER_PQT[t] - r - 1) >> 31) & 1)));
+  return r - (KYBER_PQT[t] & ((1 << 31) - (((KYBER_PQT[t] - r - 1) >> 31) & 1))) + (KYBER_PQT[t] & ((1 << 31) - ((r >> 31) & 1)));
 }
 
 /*************************************************
@@ -92,7 +92,7 @@ int16_t q_barrett_reduce(int32_t a) {
   r  = ((int64_t)v*a) >> 32;
   r *= KYBER_Q;
   r = a - r;
-  return r - (KYBER_Q & ((1 << 31) - (((KYBER_Q - r - 1) >> 31) & 1)));
+  return r - (KYBER_Q & ((1 << 31) - (((KYBER_Q - r - 1) >> 31) & 1))) + (KYBER_Q & ((1 << 31) - ((r >> 31) & 1)));
 }
 
 /*************************************************
@@ -112,7 +112,7 @@ int16_t p_barrett_reduce(int32_t a) {
   r  = ((int64_t)v*a) >> 32;
   r *= KYBER_P;
   r = a - r;
-  return r - (KYBER_P & ((1 << 31) - (((KYBER_P - r - 1) >> 31) & 1)));
+  return r - (KYBER_P & ((1 << 31) - (((KYBER_P - r - 1) >> 31) & 1))) + (KYBER_P & ((1 << 31) - ((r >> 31) & 1)));
 }
 
 /*************************************************
@@ -131,5 +131,5 @@ int32_t pqt_barrett_reduce(int32_t a, uint8_t t) {
   r  = ((((uint64_t)vPQT[t])*(uint64_t)a) >> 32);
   r *= KYBER_PQT[t];
   r = a - r;
-  return r - (KYBER_PQT[t] & ((1 << 31) - (((KYBER_PQT[t] - r - 1) >> 31) & 1)));
+  return r + (KYBER_PQT[t] & ((1 << 31) - ((r >> 31) & 1))) - (KYBER_PQT[t] & ((1 << 31) - (((KYBER_PQT[t] - r - 1) >> 31) & 1)));
 }

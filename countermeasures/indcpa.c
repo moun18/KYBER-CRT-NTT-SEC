@@ -215,9 +215,12 @@ void hide(poly* v, int16_t t, uint8_t rand){
 }
 
 int32_t lift(int32_t p, int32_t q, uint8_t t){
-    return pqt_barrett_reduce(pqt_montgomery_reduce((int64_t)p * 4137947LL + (int64_t)q * 20631166LL, t), t);
+    return pqt_montgomery_reduce((int64_t)p * 4137947LL + (int64_t)q * 20631166LL, t);
 }
 
+int32_t csubp(int32_t r){
+  return r - (KYBER_P & ((1 << 31) - (((KYBER_P - r - 1) >> 31) & 1)));
+}
 /*************************************************
 * Name:        indcpa_keypair_derand
 *
@@ -317,8 +320,8 @@ void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
   int32_t valpk = p_barrett_reduce((int32_t)KYBER_K * (int32_t)CFP_key_A * (int32_t)CFP_key_S);
   for (int i = 0; i < KYBER_N; i++){
     for (int j = 0; j < KYBER_K; j++){
-      if (p_barrett_reduce(p_montgomery_reduce(a[0].vec[j].coeffs[i])) != p_barrett_reduce(CFP_key_E + p_barrett_reduce( valpk * (256 - 2*(255 - i)))) ||
-          p_barrett_reduce(p_montgomery_reduce(e.vec[j].coeffs[i])) != CFP_key_S) {
+      if (p_montgomery_reduce(a[0].vec[j].coeffs[i]) != csubp(CFP_key_E + p_barrett_reduce( valpk * ((i << 1) - 254))) ||
+          p_montgomery_reduce(e.vec[j].coeffs[i]) != CFP_key_S) {
           return;
       }
     }
@@ -437,11 +440,11 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
   int32_t valv = p_barrett_reduce((int32_t)KYBER_K * (int32_t)CFP_enc_T * (int32_t)CFP_enc_R);
 
   for (int i = 0; i < KYBER_N; i++){
-    if (p_barrett_reduce(p_barrett_reduce(v.coeffs[i])) != p_barrett_reduce(CFP_enc_M + CFP_enc_E2 + p_barrett_reduce( valv * (256 - 2*(255 - i))))){
+    if (p_barrett_reduce(v.coeffs[i]) != csubp(CFP_enc_M + CFP_enc_E2 + p_barrett_reduce( valv * ((i << 1) - 254)))){
             return;
     }
     for (int j = 0; j < KYBER_K; j++){
-      if (p_barrett_reduce(p_barrett_reduce(b.vec[j].coeffs[i])) != p_barrett_reduce(CFP_enc_E1 + p_barrett_reduce( valu * (256 - 2*(255 - i))))){
+      if (p_barrett_reduce(b.vec[j].coeffs[i]) != csubp(CFP_enc_E1 + p_barrett_reduce( valu * ((i << 1) - 254)))){
           return;
       }
     }
@@ -517,7 +520,7 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 
   int32_t val = p_barrett_reduce((int32_t)KYBER_K * (int32_t)CFP_dec_S * (int32_t)CFP_dec_U);
   for (int i = 0; i < KYBER_N; i++){
-      if (p_barrett_reduce(p_barrett_reduce(mp.coeffs[i])) != p_barrett_reduce(CFP_dec_V - p_barrett_reduce( val * (256 - 2*(255 - i))))){
+      if (p_barrett_reduce(mp.coeffs[i]) != csubp(CFP_dec_V - p_barrett_reduce( val * ((i << 1) - 254)))){
             return;
       }
   }
