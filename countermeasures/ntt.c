@@ -244,11 +244,15 @@ void pqt_invntt(int32_t r[256], uint8_t t) {
 **************************************************/
 void pqt_basemul(int32_t r[2], const int32_t a[2], const int32_t b[2], int32_t zeta, uint8_t t)
 {
+  int32_t mem;
+
+  mem = fpqtmul(a[0], b[0], t);
   r[0]  = fpqtmul(a[1], b[1], t);
+  r[1]  = fpqtmul(a[0] + a[1], b[0] + b[1], t);
+  r[1] -= r[0];
+  r[1] -= mem;
   r[0]  = fpqtmul(r[0], zeta, t);
-  r[0] += fpqtmul(a[0], b[0], t);
-  r[1]  = fpqtmul(a[0], b[1], t);
-  r[1] += fpqtmul(a[1], b[0], t);
+  r[0] += mem;
 }
 
 int16_t p_zetas_power(uint8_t index)
