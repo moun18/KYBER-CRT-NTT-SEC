@@ -51,19 +51,19 @@ int main(void)
 
   for(i=0;i<NTESTS;i++) {
     t[i] = cpucycles();
-    poly_ntt(&ap);
+    poly_p_ntt(&ap);
   }
   print_results("NTT: ", t, NTESTS);
 
   for(i=0;i<NTESTS;i++) {
     t[i] = cpucycles();
-    poly_invntt_tomont(&ap);
+    poly_p_invntt_tomont(&ap);
   }
   print_results("INVNTT: ", t, NTESTS);
 
   for(i=0;i<NTESTS;i++) {
     t[i] = cpucycles();
-    polyvec_basemul_acc_montgomery(&ap, &matrix[0], &matrix[1]);
+    polyvec_pqt_basemul_acc_montgomery(&ap, &matrix[0], &matrix[1], 0);
   }
   print_results("polyvec_basemul_acc_montgomery: ", t, NTESTS);
 

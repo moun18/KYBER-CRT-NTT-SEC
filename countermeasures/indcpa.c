@@ -221,6 +221,9 @@ static int32_t lift(int32_t p, int32_t q, uint8_t t){
 static int32_t csubp(int32_t r){
   return r - (KYBER_P & ((1 << 31) - (((KYBER_P - r - 1) >> 31) & 1)));
 }
+static int32_t caddp(int32_t r){
+  return r + (KYBER_P & ((1 << 31) - ((r >> 31) & 1)));
+}
 /*************************************************
 * Name:        indcpa_keypair_derand
 *
@@ -440,7 +443,8 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
   int32_t valv = p_barrett_reduce((int32_t)KYBER_K * (int32_t)CFP_enc_T * (int32_t)CFP_enc_R);
 
   for (i = 0; i < KYBER_N; i++){
-    if (p_barrett_reduce(v.coeffs[i]) != csubp(CFP_enc_M + CFP_enc_E2 + p_barrett_reduce( valv * ((i << 1) - 254)))){
+    if (p_barrett_reduce(v.coeffs[i]) != csubp(csubp(CFP_enc_M + CFP_enc_E2 + p_barrett_reduce( valv * ((i << 1) - 254))))){
+            
             return;
     }
     for (j = 0; j < KYBER_K; j++){
@@ -521,7 +525,8 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 
   int32_t val = p_barrett_reduce((int32_t)KYBER_K * (int32_t)CFP_dec_S * (int32_t)CFP_dec_U);
   for (int i = 0; i < KYBER_N; i++){
-      if (p_barrett_reduce(mp.coeffs[i]) != csubp(CFP_dec_V - p_barrett_reduce( val * ((i << 1) - 254)))){
+      if (p_barrett_reduce(mp.coeffs[i]) != caddp(CFP_dec_V - p_barrett_reduce( val * ((i << 1) - 254)))){
+              
             return;
       }
   }

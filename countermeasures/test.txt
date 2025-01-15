@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include "reduce.h"
+#include <time.h>
+#include <sys/resource.h>
 // #include "indcpa.h"
 #include "kem.h"
 #include "ntt.h"
@@ -73,12 +75,21 @@ int main() {
     uint8_t ss[KYBER_SSBYTES];
     uint8_t ss2[KYBER_SSBYTES];
     uint8_t ct[KYBER_CIPHERTEXTBYTES];
-    crypto_kem_keypair(pk, sk);
-    crypto_kem_enc(ct, ss, pk);
-    crypto_kem_dec(ss2, ct, sk);
-    for (int i = 0; i< KYBER_SSBYTES; i++){
-        printf("%d, %d \n", ss[i], ss2[i]);
+    clock_t tmp, av;
+    int tot = 0;
+    av = 0;
+    for (int i = 0; i <10000; i ++){
+        crypto_kem_keypair(pk, sk);
+        tmp = clock();
+        crypto_kem_enc(ct, ss, pk);
+        av += clock() - tmp;
+        crypto_kem_dec(ss2, ct, sk);
     }
+    printf("%ld, %d \n", av/10000, tot);
+    for (int i = 0; i< KYBER_SSBYTES; i++){
+        if(ss[i] != ss2[i])
+            printf("%d, %d \n", ss[i], ss2[i]);
+    }  
     return 0;
 }
 

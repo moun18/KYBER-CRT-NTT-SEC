@@ -241,6 +241,7 @@ void polyvec_pqt_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec
   for(i=1;i<KYBER_K;i++) {
     poly_pqt_basemul_montgomery(&tp, &a->vec[i], &b->vec[i], t);
     poly_add(r, r, &tp); 
+    poly_pqt_reduce(r, t);
   }
 
   poly_pqt_reduce(r, t);
